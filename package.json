@@ -1,0 +1,14 @@
+{
+  "name": "dtu-academic-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host 127.0.0.1 --port 5174",
+    "build": "vite build",
+    "preview": "vite preview",
+    "check": "node --check tai-nguyen/xu-ly/bieu-tuong.js && node --check tai-nguyen/xu-ly/dang-nhap-dang-ky.js && node --check tai-nguyen/xu-ly/trang-chu.js && node --check tai-nguyen/xu-ly/dieu-huong.js"
+  },
+  "devDependencies": {
+    "vite": "^7.0.0"
+  }
+}

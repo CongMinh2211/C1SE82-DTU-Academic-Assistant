@@ -1,0 +1,4 @@
+// Biểu tượng dùng chung cho các trang.
+const icons={home:'<path d="m3 10 9-7 9 7v10H3z"/><path d="M9 20v-7h6v7"/>',chat:'<path d="M4 4h16v12H9l-5 4z"/>',book:'<path d="M12 5v15M3 4c4-1 6 0 9 1 3-1 5-2 9-1v15c-4-1-6 0-9 1-3-1-5-2-9-1z"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',heart:'<path d="M20 5c-3-3-6-1-8 1-2-2-5-4-8-1-4 4 1 9 8 15 7-6 12-11 8-15z"/>',user:'<circle cx="12" cy="7" r="3"/><path d="M5 21v-3a7 7 0 0 1 14 0v3"/>',bell:'<path d="M6 10a6 6 0 0 1 12 0c0 6 3 6 3 7H3c0-1 3-1 3-7M10 21h4"/>',check:'<path d="m6 12 4 4 8-9"/>'};
+icons.lock='<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V6a4 4 0 0 1 8 0v4"/>';icons.eye='<path d="M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/>';icons.shield='<path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6Z"/>';
+const svg=name=>`<svg viewBox="0 0 24 24" aria-hidden="true">${icons[name]||icons.chat}</svg>`;
