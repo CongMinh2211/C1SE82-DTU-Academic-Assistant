@@ -1,6 +1,6 @@
 # C1SE.82 DTU Academic Assistant — fullstack structure
 
-This branch is a **project skeleton**, not a completed academic-advice service. It keeps the existing `member/lam` demo untouched. The screen inventory follows the team's Figma Student/Admin designs; real DTU content, login, RAG and database migrations will be added in later tasks.
+This branch is a **project skeleton with a small backend/RAG-safety preview**, not a completed academic-advice service. It keeps the existing `member/lam` demo untouched. The screen inventory follows the team's Figma Student/Admin designs; real DTU content, login, vector retrieval, Vietnamese LLM and database migrations will be added in later tasks.
 
 ## Layout
 
@@ -28,3 +28,5 @@ python -m venv .venv
 ```
 
 The web app is at `http://localhost:3000`; the API health check is at `http://localhost:8000/api/v1/health`. Copy `.env.example` files to local `.env` files when integrating services. No passwords or API keys belong in Git.
+
+API tests: `cd apps/api; .venv\Scripts\python -m pytest -q`. The provisional `POST /api/v1/chat/ask` route is disabled by default. See [AI/RAG integration notes](docs/AI_RAG_SUPPORT.md) before connecting the database or enabling it.

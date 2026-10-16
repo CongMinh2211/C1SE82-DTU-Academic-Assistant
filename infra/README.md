@@ -1,1 +1,1 @@
-Local Docker Compose and deployment manifests will be added after the team confirms PostgreSQL/pgvector version, hosting target, secrets handling and approved document storage.
+`compose.yaml` starts only the API for local smoke tests; it binds to `127.0.0.1:8000` and leaves chat preview disabled. Run `docker compose -f infra/compose.yaml up --build` from the repository root. This is not a production deployment: PostgreSQL/pgvector, secrets management, HTTPS, authentication and hosting target still need team agreement and implementation.
