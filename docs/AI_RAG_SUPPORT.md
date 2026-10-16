@@ -16,6 +16,6 @@
 - Tài: schema và migration, tài liệu/phiên bản đã duyệt, truy xuất pgvector, authentication/authorization và triển khai môi trường.
 - Minh + Tài: đánh giá embedding model có hỗ trợ tiếng Việt trên tập câu hỏi học vụ; chọn LLM hỗ trợ tiếng Việt, chỉ cho phép sinh câu trả lời từ nguồn đã qua bộ lọc và kiểm tra trích dẫn.
 - Duyên: kiểm thử trường hợp nguồn thiếu, phiên bản chưa duyệt, điểm thấp, lỗi đầu vào; xây dựng FAQ/Feedback API theo schema và quyền do Tài thống nhất.
-- Lâm/Duy: tích hợp trạng thái loading, citation, fallback và lỗi của API vào giao diện tương ứng.
+- Lãm/Duy: tích hợp trạng thái loading, citation, fallback và lỗi của API vào giao diện tương ứng.
 
 Trước khi public, cần chốt ngưỡng bằng đánh giá offline, kiểm tra an toàn đầu ra, phân quyền route, logging không lộ dữ liệu cá nhân, và test end-to-end với tài liệu DTU chính thức. Chạy `python -m pytest -q` trong `apps/api` để kiểm thử lát cắt hiện tại.

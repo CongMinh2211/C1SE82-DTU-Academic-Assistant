@@ -4,7 +4,7 @@ This is a **proposed** split for the five team members. Confirm it together befo
 
 | Person | Primary files / areas | First deliverable |
 | --- | --- | --- |
-| Lâm — Student FE | `apps/web/src/app/login`, `apps/web/src/app/student/**`, `apps/web/src/features/auth`, `chat`, `history`, `apps/web/public/images` | Figma-matched Student login, home, chat, citation/fallback; responsive and accessible |
+| Lãm — Student FE | `apps/web/src/app/login`, `apps/web/src/app/student/**`, `apps/web/src/features/auth`, `chat`, `history`, `apps/web/public/images` | Figma-matched Student login, home, chat, citation/fallback; responsive and accessible |
 | Duy — Admin FE | `apps/web/src/app/admin/**`, `apps/web/src/features/documents`, `faq`, `feedback`, `admin` | Dashboard, document list/add, processing, FAQ/feedback screens |
 | Tài — BE architecture, DB, RAG | `apps/api/app/core`, `db`, `models`, `repositories`, `rag`, chat/document/admin services; `database/migrations` | Approved schema + auth guard + document/RAG pipeline with safe fallback |
 | Duyên — BA/QA + BE support | `apps/api/app/api/v1/endpoints/faqs.py`, `feedback.py`; matching schemas/services/tests; acceptance tests | FAQ/feedback API, validation, clear errors, pytest/Postman checks, UAT cases |
@@ -15,7 +15,7 @@ Shared files (`apps/web/src/components/ui`, `apps/web/src/app/globals.css`, `app
 ## Recommended sequence
 
 1. Agree DB and API contract; Tài defines model IDs, auth rules and response examples. Minh updates the contract.
-2. Lâm and Duy implement visual components from Figma in parallel; use typed mock data until API contracts stabilize. Replace preview links with real role-gated navigation.
+2. Lãm and Duy implement visual components from Figma in parallel; use typed mock data until API contracts stabilize. Replace preview links with real role-gated navigation.
 3. Tài implements database, login and approved-source ingestion/RAG. Duyên implements FAQ/feedback under those contracts and adds tests.
 4. Connect UI to API through `apps/web/src/lib/api`; test loading, empty, validation, server error, citation and safe fallback states.
 5. Run end-to-end checks and review before merging to `main`.
