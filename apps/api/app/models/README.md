@@ -1,0 +1,1 @@
+ORM models: users, topics, sources, documents, document_versions, document_chunks, indexing_jobs, conversations, qa_requests, retrieved_evidence, answer_citations, faqs, feedback and audit records. Match the approved DB design and migrations.
