@@ -18,3 +18,9 @@ The application deliberately fails closed until the shared backend adapters are 
 If either adapter is missing, the API returns a structured 503 error. This leaves authentication and database schema decisions with their shared owners.
 
 Errors use {"error":{"code":"...","message":"...","request_id":"...","details":[]}}; X-Request-ID is returned on both successful and failed responses.
+
+## Feedback API
+
+Authenticated users can submit feedback with POST /feedback and view only their own feedback with GET /feedback and GET /feedback/{id}. Administrators can list feedback with GET /admin/feedback and resolve pending items with PATCH /admin/feedback/{id}.
+
+The shared app.state.feedback_repository must implement FeedbackRepository. Its create_for_owner operation must atomically verify that any referenced message is an assistant reply in the submitting user's conversation before inserting. Owner-scoped reads must filter by user_id in storage, and resolve_pending must update only pending feedback atomically. The shared principal_provider is required. Missing adapters return 503.
