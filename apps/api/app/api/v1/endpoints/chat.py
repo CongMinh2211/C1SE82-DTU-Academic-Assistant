@@ -6,6 +6,7 @@ from typing import Protocol
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.rag.grounding import EvidenceCandidate
+from app.rag.query_normalizer import normalize_question
 from app.schemas.chat import AskRequest, AskResponse
 from app.services.chat_support import answer_from_evidence
 
@@ -40,7 +41,7 @@ def ask_question(
         # hỏi tiếng Việt và embedding model thực tế trước khi dùng chính thức.
         threshold = float(os.getenv("RAG_MIN_SIMILARITY", "0.72"))
         return answer_from_evidence(
-            provider.search(request.question, limit=5), minimum_similarity=threshold
+            provider.search(normalize_question(request.question), limit=5), minimum_similarity=threshold
         )
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=503, detail="Cấu hình truy xuất chưa hợp lệ.") from exc

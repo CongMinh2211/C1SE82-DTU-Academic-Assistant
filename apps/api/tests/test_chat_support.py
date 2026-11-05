@@ -83,3 +83,26 @@ def test_chat_rejects_blank_question(monkeypatch) -> None:
     monkeypatch.setenv("ENABLE_CHAT_PREVIEW", "true")
     response = TestClient(app).post("/api/v1/chat/ask", json={"question": "     "})
     assert response.status_code == 422
+
+def test_preview_normalizes_short_tuition_queries_before_retrieval(monkeypatch) -> None:
+    queries = []
+
+    class Provider:
+        def search(self, question: str, *, limit: int) -> list[EvidenceCandidate]:
+            queries.append(question)
+            return []
+
+    monkeypatch.setenv("ENABLE_CHAT_PREVIEW", "true")
+    monkeypatch.setitem(app.dependency_overrides, get_candidate_provider, Provider)
+    client = TestClient(app)
+    for question in (
+        "1 tín Digital Marketing K30 là bao nhiêu?",
+        "1 tín ngành Digital Marketing K30 bao nhiêu tiền?",
+        "Đăng ký bao nhiêu tín chỉ?",
+    ):
+        response = client.post("/api/v1/chat/ask", json={"question": question})
+        assert response.status_code == 200
+        assert response.json()["fallback"] is True
+
+    assert queries[0] == queries[1] == "Tra cứu học phí, đơn giá tín chỉ: tin chi digital marketing k30"
+    assert queries[2] == "Đăng ký bao nhiêu tín chỉ?"
