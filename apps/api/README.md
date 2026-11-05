@@ -24,3 +24,20 @@ Errors use {"error":{"code":"...","message":"...","request_id":"...","details":[
 Authenticated users can submit feedback with POST /feedback and view only their own feedback with GET /feedback and GET /feedback/{id}. Administrators can list feedback with GET /admin/feedback and resolve pending items with PATCH /admin/feedback/{id}.
 
 The shared app.state.feedback_repository must implement FeedbackRepository. Its create_for_owner operation must atomically verify that any referenced message is an assistant reply in the submitting user's conversation before inserting. Owner-scoped reads must filter by user_id in storage, and resolve_pending must update only pending feedback atomically. The shared principal_provider is required. Missing adapters return 503.
+
+## Pytest regression suite
+
+From apps/api, install the test dependencies and run the API tests:
+
+```sh
+python -m pip install -e ".[test]"
+python -m pytest -q
+```
+
+The tests use in-process ASGI clients with in-memory repositories and a stub principal provider. They do not require a database or external AI/search services.
+
+## Postman regression collection
+
+Import apps/api/postman/DTU-Academic-Assistant-API.postman_collection.json into Postman. Set a local environment with baseUrl (ending in /api/v1), studentToken, adminToken, otherStudentToken, faqId, activeSourceId, and assistantMessageId. Do not commit access tokens or a Postman environment file.
+
+Run the collection only against an isolated QA or staging deployment with the shared authentication and repository adapters configured. The collection creates a draft FAQ and feedback record, publishes and deletes its FAQ, and resolves feedback. The repository intentionally returns 503 when those adapters are absent, so the collection is not a standalone local smoke test.

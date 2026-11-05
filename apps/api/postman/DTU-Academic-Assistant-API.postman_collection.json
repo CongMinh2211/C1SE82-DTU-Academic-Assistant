@@ -1,0 +1,524 @@
+{
+  "info": {
+    "name": "DTU Academic Assistant API Regression",
+    "description": "Contract checks for FAQ and feedback APIs. Configure a dedicated QA or staging environment first. Requests that create or update data are intentional regression scenarios; tokens and source/message IDs are environment variables and are not stored in this collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8000/api/v1"
+    },
+    {
+      "key": "studentToken",
+      "value": ""
+    },
+    {
+      "key": "adminToken",
+      "value": ""
+    },
+    {
+      "key": "otherStudentToken",
+      "value": ""
+    },
+    {
+      "key": "faqId",
+      "value": ""
+    },
+    {
+      "key": "missingFaqId",
+      "value": "00000000-0000-4000-8000-000000000000"
+    },
+    {
+      "key": "activeSourceId",
+      "value": ""
+    },
+    {
+      "key": "assistantMessageId",
+      "value": ""
+    },
+    {
+      "key": "feedbackId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "FAQ public reads",
+      "item": [
+        {
+          "name": "List published FAQs",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/faqs?page=1&page_size=20"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns published FAQ page', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('has pagination and items', () => { pm.expect(body.items).to.be.an('array'); pm.expect(body.page).to.eql(1); pm.expect(body.page_size).to.eql(20); });",
+                  "pm.test('returns request ID', () => pm.expect(pm.response.headers.get('X-Request-ID')).to.be.a('string').and.not.empty);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get published FAQ by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/faqs/{{faqId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns published FAQ', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('matches requested FAQ', () => pm.expect(body.id).to.eql(pm.environment.get('faqId')));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Unknown FAQ returns structured 404",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": "{{baseUrl}}/faqs/{{missingFaqId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('returns not found', () => pm.response.to.have.status(404));",
+                  "const body = pm.response.json();",
+                  "pm.test('returns API error envelope and request ID', () => { pm.expect(body.error.code).to.eql('faq_not_found'); pm.expect(body.error.request_id).to.eql(pm.response.headers.get('X-Request-ID')); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "FAQ administration",
+      "item": [
+        {
+          "name": "Student cannot create FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"QA student FAQ\",\"answer\":\"Should be rejected.\",\"topic\":\"QA\",\"status\":\"draft\"}"
+            },
+            "url": "{{baseUrl}}/faqs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('student is forbidden', () => pm.response.to.have.status(403));",
+                  "const body = pm.response.json();",
+                  "pm.test('returns structured forbidden error', () => pm.expect(body.error.code).to.eql('forbidden'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin creates draft FAQ",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"QA registration question\",\"answer\":\"QA draft answer for regression testing.\",\"topic\":\"QA\",\"status\":\"draft\"}"
+            },
+            "url": "{{baseUrl}}/faqs"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin creates draft', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('draft has an ID and expected status', () => { pm.expect(body.id).to.be.a('string').and.not.empty; pm.expect(body.status).to.eql('draft'); });",
+                  "pm.environment.set('faqId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Publishing without a source is rejected",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"QA registration question\",\"answer\":\"QA draft answer for regression testing.\",\"topic\":\"QA\",\"status\":\"published\"}"
+            },
+            "url": "{{baseUrl}}/faqs/{{faqId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('publication requires a source', () => pm.response.to.have.status(422));",
+                  "const body = pm.response.json();",
+                  "pm.test('returns source-required error', () => pm.expect(body.error.code).to.eql('faq_source_required'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin publishes draft with active approved source",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"question\":\"QA registration question\",\"answer\":\"QA draft answer for regression testing.\",\"topic\":\"QA\",\"source_id\":\"{{activeSourceId}}\",\"status\":\"published\"}"
+            },
+            "url": "{{baseUrl}}/faqs/{{faqId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin publishes FAQ', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('published FAQ references the configured source', () => { pm.expect(body.status).to.eql('published'); pm.expect(body.source_id).to.eql(pm.environment.get('activeSourceId')); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin deletes regression FAQ",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/faqs/{{faqId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin deletes FAQ', () => pm.response.to.have.status(204));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Feedback",
+      "item": [
+        {
+          "name": "Student submits feedback for own assistant reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"message_id\":\"{{assistantMessageId}}\",\"rating\":5,\"category\":\"answer\",\"content\":\"Postman regression feedback record.\"}"
+            },
+            "url": "{{baseUrl}}/feedback"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('feedback is created', () => pm.response.to.have.status(201));",
+                  "const body = pm.response.json();",
+                  "pm.test('new feedback is pending', () => { pm.expect(body.id).to.be.a('string').and.not.empty; pm.expect(body.status).to.eql('pending'); });",
+                  "pm.environment.set('feedbackId', body.id);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student lists own feedback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/feedback"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('owner can list feedback', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('list contains this run feedback', () => pm.expect(body.items.some(item => item.id === pm.environment.get('feedbackId'))).to.eql(true));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Other student cannot read feedback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{otherStudentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/feedback/{{feedbackId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('foreign feedback is hidden', () => pm.response.to.have.status(404));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Student cannot list admin feedback",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{studentToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/admin/feedback"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('student is forbidden from admin review', () => pm.response.to.have.status(403));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin resolves feedback",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resolution\":\"Reviewed by the QA regression collection.\"}"
+            },
+            "url": "{{baseUrl}}/admin/feedback/{{feedbackId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('admin resolves pending feedback', () => pm.response.to.have.status(200));",
+                  "const body = pm.response.json();",
+                  "pm.test('feedback has resolved state', () => pm.expect(body.status).to.eql('resolved'));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Resolved feedback cannot be resolved twice",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{adminToken}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\"resolution\":\"Second resolution should be rejected.\"}"
+            },
+            "url": "{{baseUrl}}/admin/feedback/{{feedbackId}}"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('repeat resolution conflicts', () => pm.response.to.have.status(409));"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
