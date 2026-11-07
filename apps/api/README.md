@@ -41,3 +41,15 @@ The tests use in-process ASGI clients with in-memory repositories and a stub pri
 Import apps/api/postman/DTU-Academic-Assistant-API.postman_collection.json into Postman. Set a local environment with baseUrl (ending in /api/v1), studentToken, adminToken, otherStudentToken, faqId, activeSourceId, and assistantMessageId. Do not commit access tokens or a Postman environment file.
 
 Run the collection only against an isolated QA or staging deployment with the shared authentication and repository adapters configured. The collection creates a draft FAQ and feedback record, publishes and deletes its FAQ, and resolves feedback. The repository intentionally returns 503 when those adapters are absent, so the collection is not a standalone local smoke test.
+
+## RAG, citation and fallback evaluation
+
+Run the offline evaluator from apps/api with a reviewed case file and a matching set of exported RAG traces:
+
+```sh
+python -m evaluation.rag_quality --cases evaluation/cases.example.json --traces evaluation/traces.json
+```
+
+The evaluator reports retrieval recall, mean reciprocal rank (MRR), exact source-and-locator citation precision/recall, citation-to-retrieval consistency, claim source-reference coverage, and fallback behavior. Thresholds can be set per case. The case file is only a schema example: its source IDs and locators are placeholders and must be replaced with approved DTU test data.
+
+This branch does not currently expose a chat/RAG route or trace-export adapter. The evaluator therefore checks supplied JSON traces offline; it does not exercise a live RAG pipeline or make claims about its production accuracy. Human review is still needed to judge whether cited passages semantically support the answer text.

@@ -1,0 +1,64 @@
+[
+  {
+    "id": "RAG-01",
+    "title": "Tuition fee answer with exact locator",
+    "query": "How do I check tuition fees for my program?",
+    "expected_sources": [
+      {
+        "source_id": "REPLACE_WITH_APPROVED_SOURCE_ID",
+        "locator": "REPLACE_WITH_PAGE_OR_SECTION"
+      }
+    ],
+    "claims": [
+      {
+        "claim": "A factual statement about tuition fees.",
+        "source_ids": [
+          "REPLACE_WITH_APPROVED_SOURCE_ID"
+        ]
+      }
+    ],
+    "fallback_reason": null,
+    "thresholds": {
+      "minimum_retrieval_recall": 1,
+      "minimum_reciprocal_rank": 1,
+      "minimum_citation_precision": 1,
+      "minimum_citation_recall": 1
+    }
+  },
+  {
+    "id": "RAG-02",
+    "title": "Vietnamese academic calendar answer",
+    "query": "Lịch đăng ký học phần học kỳ tới khi nào?",
+    "expected_sources": [
+      {
+        "source_id": "REPLACE_WITH_APPROVED_SOURCE_ID",
+        "locator": "REPLACE_WITH_PAGE_OR_SECTION"
+      }
+    ],
+    "claims": [
+      {
+        "claim": "Một thông tin cụ thể về lịch học.",
+        "source_ids": [
+          "REPLACE_WITH_APPROVED_SOURCE_ID"
+        ]
+      }
+    ],
+    "fallback_reason": null
+  },
+  {
+    "id": "RAG-03",
+    "title": "No-evidence fallback",
+    "query": "A question not covered by any approved document",
+    "expected_sources": [],
+    "claims": [],
+    "fallback_reason": "no_evidence"
+  },
+  {
+    "id": "RAG-04",
+    "title": "Provider-unavailable fallback",
+    "query": "A question used while the answer provider is unavailable",
+    "expected_sources": [],
+    "claims": [],
+    "fallback_reason": "provider_unavailable"
+  }
+]
