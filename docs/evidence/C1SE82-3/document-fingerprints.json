@@ -1,0 +1,31 @@
+[
+  {
+    "document": "DTU_Academic_Assistant_Architecture_Documents.docx",
+    "relative_path": "5. ARCHITECTURE_DESIGN\\_content\\DTU_Academic_Assistant_Architecture_Documents.docx",
+    "sha256": "06693d99931f62c009e6086ce5eb7d507bb9280a18d86eefc000a6b12e6a44cf",
+    "review_markers": [
+      "Version 1.2",
+      "Pending mentor review",
+      "Pending mentor review"
+    ]
+  },
+  {
+    "document": "C1SE.82_DTU_Academic_Assistant_AI_Usage_Disclosure_Statement.docx",
+    "relative_path": "1. PROPOSAL\\_content\\C1SE.82_DTU_Academic_Assistant_AI_Usage_Disclosure_Statement.docx",
+    "sha256": "f3802bfffec64e3955a86c9cfe0435af71fcab0ff1b3dd1b1e532f0522f14a00",
+    "review_markers": []
+  },
+  {
+    "document": "C1SE.82_Code_and_Project_Standards_DTU_Academic_Assistant_v1.0_Revised_v3.docx",
+    "relative_path": "11. CODE_AND_PROJECT_STANDARDS\\_content\\C1SE.82_Code_and_Project_Standards_DTU_Academic_Assistant_v1.0_Revised_v3.docx",
+    "sha256": "db984330527575b6d8ec9b8922d327ecea8d83cd4a5e40e8b4480724be32a7bf",
+    "review_markers": [
+      "Approved by (signature pending)",
+      "Draft for team / mentor review - NOT YET APPROVED",
+      "Trần Anh Tài; Trần Bá Xuân Lãm; Thái Nhật Duy; Phạm Hoàng Duyên (reviews pending)",
+      "MSc. Trung, Dang Ngoc - approval / signature pending",
+      "Table 12. Member Review and Signature Register30",
+      "Tasks present; evidence and historical Sprint reconciliation pending"
+    ]
+  }
+]

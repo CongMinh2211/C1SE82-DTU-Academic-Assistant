@@ -1,0 +1,17 @@
+:root {
+  --canvas: #f4f7fb;
+  --paper: #ffffff;
+  --line: #e1e8f0;
+  --ink: #172d4d;
+  --muted: #586a82;
+  --dtu-red: #c92c40;
+  --navy: #123b68;
+  --blue: #244bb7;
+  --blue-soft: #eaf2ff;
+}
+* { box-sizing: border-box; }
+html { font-family: Inter, Arial, sans-serif; background: var(--canvas); color: var(--ink); }
+body { margin: 0; }
+a { color: inherit; }
+button, input, textarea, select { font: inherit; }
+:focus-visible { outline: 3px solid var(--blue); outline-offset: 2px; }
