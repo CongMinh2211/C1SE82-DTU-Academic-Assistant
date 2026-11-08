@@ -23,6 +23,7 @@ class EvidenceCandidate:
     page: int | None = None
     section: str | None = None
     effective_date: date | None = None
+    expires_on: date | None = None
 
 
 def select_evidence(
@@ -39,8 +40,8 @@ def select_evidence(
         raise ValueError("limit must be positive")
     today = today or date.today()
     # Lọc trước khi xếp hạng: điểm cao không được phép vượt qua điều kiện duyệt.
-    # effective_date trong tương lai là chưa có hiệu lực; không suy đoán ngày
-    # hết hiệu lực khi nguồn dữ liệu chưa cung cấp trường đó.
+    # Ngày bắt đầu trong tương lai và ngày hết hiệu lực đã qua đều không hợp lệ.
+    # Không suy đoán ngày hiệu lực khi nguồn dữ liệu chưa cung cấp thông tin.
     eligible = (
         item for item in candidates
         if item.approved
@@ -52,6 +53,8 @@ def select_evidence(
         and isfinite(item.similarity)
         and item.similarity >= minimum_similarity
         and (item.effective_date is None or item.effective_date <= today)
+        and (item.expires_on is None or item.expires_on >= today)
+        and (item.effective_date is None or item.expires_on is None or item.effective_date <= item.expires_on)
     )
     result: list[EvidenceCandidate] = []
     seen: set[str] = set()

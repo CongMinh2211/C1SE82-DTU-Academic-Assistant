@@ -5,6 +5,7 @@ PostgreSQL/pgvector của ứng dụng BE đầy đủ được lưu thành evid
 chỉ chạy lại sau khi source BE được đưa lên Git theo đúng phạm vi của nhóm.
 """
 
+from datetime import date
 from math import inf, nan
 
 import pytest
@@ -51,3 +52,15 @@ def test_unapproved_result_cannot_displace_approved_result() -> None:
         minimum_similarity=0.72,
     )
     assert [item.chunk_id for item in selected] == ["approved"]
+
+
+def test_expired_future_and_invalid_periods_never_become_evidence() -> None:
+    # Ngày kết thúc là ngày cuối còn hiệu lực, khoảng thời gian ngược bị loại.
+    today = date(2026, 11, 9)
+    candidates = [
+        candidate("expired", expires_on=date(2026, 11, 8)),
+        candidate("future", effective_date=date(2026, 11, 10)),
+        candidate("invalid", effective_date=date(2026, 11, 9), expires_on=date(2026, 11, 8)),
+        candidate("valid", effective_date=date(2026, 11, 1), expires_on=today),
+    ]
+    assert [item.chunk_id for item in select_evidence(candidates, minimum_similarity=0.72, today=today)] == ["valid"]
