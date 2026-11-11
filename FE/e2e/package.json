@@ -1,0 +1,13 @@
+{
+  "name": "dtu-admin-fe-e2e",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "playwright test",
+    "test:list": "playwright test --list"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.65.0",
+    "@types/node": "24.19.2"
+  }
+}
