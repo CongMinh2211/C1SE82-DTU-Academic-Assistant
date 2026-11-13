@@ -53,3 +53,19 @@ python -m evaluation.rag_quality --cases evaluation/cases.example.json --traces 
 The evaluator reports retrieval recall, mean reciprocal rank (MRR), exact source-and-locator citation precision/recall, citation-to-retrieval consistency, claim source-reference coverage, and fallback behavior. Thresholds can be set per case. The case file is only a schema example: its source IDs and locators are placeholders and must be replaced with approved DTU test data.
 
 This branch does not currently expose a chat/RAG route or trace-export adapter. The evaluator therefore checks supplied JSON traces offline; it does not exercise a live RAG pipeline or make claims about its production accuracy. Human review is still needed to judge whether cited passages semantically support the answer text.
+
+## Student registration
+
+Create a student account with `POST /auth/register` (full URL: `/api/v1/auth/register`):
+
+```json
+{
+  "name": "Nguyen Van A",
+  "email": "student@example.edu",
+  "password": "at-least-12-characters"
+}
+```
+
+Names are trimmed and limited to 2–100 characters. Email addresses are validated and normalized to lowercase. Passwords must contain 12–128 characters and are stored as Argon2id hashes; the plaintext password is never returned or passed to the storage adapter. Registration always assigns the `student` role. Unknown fields, including a caller-supplied role, are rejected. A duplicate normalized email returns 409.
+
+The route requires `app.state.user_repository` to implement `UserRepository.create_user` from `app/services/users.py`. The adapter must atomically enforce unique normalized emails and persist the returned account with the encoded password hash. Until that shared storage adapter is installed, registration returns 503. This endpoint creates an account only; it does not establish a login session. Authentication and session creation are handled by the login flow.
