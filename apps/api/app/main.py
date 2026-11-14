@@ -1,3 +1,4 @@
+from contextlib import asynccontextmanager
 import os
 from uuid import uuid4
 
@@ -8,8 +9,41 @@ from starlette.responses import Response
 
 from app.api.v1.router import api_router
 from app.core.errors import install_error_handlers
+from app.services.auth_storage import SQLAuthRepository
 
-app = FastAPI(title="DTU Academic Assistant API", version="0.1.0")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    user_repository = getattr(app.state, "user_repository", None)
+    session_repository = getattr(app.state, "session_repository", None)
+    storage = None
+
+    try:
+        if (user_repository is None) != (session_repository is None):
+            raise RuntimeError(
+                "Configure both user_repository and session_repository together."
+            )
+        if user_repository is None:
+            storage = SQLAuthRepository.from_environment()
+            storage.initialize()
+            app.state.user_repository = storage
+            app.state.session_repository = storage
+
+        yield
+    finally:
+        if storage is not None:
+            if getattr(app.state, "user_repository", None) is storage:
+                app.state.user_repository = None
+            if getattr(app.state, "session_repository", None) is storage:
+                app.state.session_repository = None
+            storage.close()
+
+
+app = FastAPI(
+    title="DTU Academic Assistant API",
+    version="0.1.0",
+    lifespan=lifespan,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[os.getenv("WEB_ORIGIN", "http://localhost:3000")],

@@ -10,12 +10,14 @@ FAQ requests reject unknown fields, trim surrounding whitespace, and enforce que
 
 ## Integration points
 
-The application deliberately fails closed until the shared backend adapters are installed:
+Account and session storage is initialized automatically. SQLite is used by default at `apps/api/data/auth.sqlite3`; configure `AUTH_DATABASE_URL` to use PostgreSQL. FAQ and feedback persistence remain shared integration adapters:
 
-- app.state.principal_provider can resolve the authenticated principal. Without it, the built-in session resolver uses app.state.session_repository and app.state.user_repository. Admin routes require role == "admin".
-- app.state.faq_repository must implement the FaqRepository protocol in app/services/faqs.py. Its save operation must check source existence and, when publishing, active/approved status in the same database transaction.
+- app.state.user_repository and app.state.session_repository are initialized by the SQLAlchemy auth adapter. A custom `AUTH_DATABASE_URL` can point to PostgreSQL; keep it in server environment configuration.
+- app.state.principal_provider may replace the built-in session resolver. Admin routes require role == "admin".
+- app.state.faq_repository must implement the FaqRepository protocol in app/services/faqs.py. Its save operation must check source existence and active/approved status in the same database transaction.
+- app.state.feedback_repository must implement FeedbackRepository in app/services/feedback.py.
 
-A missing required adapter returns a structured 503 error. This leaves authentication and database schema decisions with their shared owners.
+FAQ and feedback routes return a structured 503 error until their shared repository adapters are installed. The auth tables are created automatically at API startup.
 
 Errors use {"error":{"code":"...","message":"...","request_id":"...","details":[]}}; X-Request-ID is returned on both successful and failed responses.
 
@@ -23,7 +25,7 @@ Errors use {"error":{"code":"...","message":"...","request_id":"...","details":[
 
 Authenticated users can submit feedback with POST /feedback and view only their own feedback with GET /feedback and GET /feedback/{id}. Administrators can list feedback with GET /admin/feedback and resolve pending items with PATCH /admin/feedback/{id}.
 
-The shared app.state.feedback_repository must implement FeedbackRepository. Its create_for_owner operation must atomically verify that any referenced message is an assistant reply in the submitting user's conversation before inserting. Owner-scoped reads must filter by user_id in storage, and resolve_pending must update only pending feedback atomically. Authentication uses app.state.principal_provider or the built-in session resolver. Missing required adapters return 503.
+The app.state.feedback_repository must implement FeedbackRepository. Its create_for_owner operation must atomically verify that any referenced message is an assistant reply in the submitting user's conversation before inserting. Owner-scoped reads must filter by user_id in storage, and resolve_pending must update only pending feedback atomically. Authentication uses app.state.principal_provider or the built-in session resolver. Missing feedback storage returns 503.
 
 ## Pytest regression suite
 
@@ -40,7 +42,7 @@ The tests use in-process ASGI clients with in-memory repositories and a stub pri
 
 Import apps/api/postman/DTU-Academic-Assistant-API.postman_collection.json into Postman. Set a local environment with baseUrl (ending in /api/v1), studentToken, adminToken, otherStudentToken, faqId, activeSourceId, and assistantMessageId. Do not commit access tokens or a Postman environment file.
 
-Run the collection only against an isolated QA or staging deployment with the shared authentication and repository adapters configured. The collection creates a draft FAQ and feedback record, publishes and deletes its FAQ, and resolves feedback. The repository intentionally returns 503 when those adapters are absent, so the collection is not a standalone local smoke test.
+Run the collection only against an isolated QA or staging deployment with FAQ and feedback repository adapters configured. Authentication may use the built-in session cookie or a shared principal provider. The collection creates a draft FAQ and feedback record, publishes and deletes its FAQ, and resolves feedback.
 
 ## RAG, citation and fallback evaluation
 
@@ -68,7 +70,7 @@ Create a student account with `POST /auth/register` (full URL: `/api/v1/auth/reg
 
 Names are trimmed and limited to 2–100 characters. Email addresses are validated and normalized to lowercase. Passwords must contain 12–128 characters and are stored as Argon2id hashes; the plaintext password is never returned or passed to the storage adapter. Registration always assigns the `student` role. Unknown fields, including a caller-supplied role, are rejected. A duplicate normalized email returns 409.
 
-The route requires `app.state.user_repository` to implement `UserRepository.create_user` from `app/services/users.py`. The adapter must atomically enforce unique normalized emails and persist the returned account with the encoded password hash. Until that shared storage adapter is installed, registration returns 503. This endpoint creates an account only; it does not establish a login session. Authentication and session creation are handled by the login flow.
+The SQLAlchemy adapter is installed at startup by default. It creates `auth_users` and `auth_sessions` tables in SQLite at `apps/api/data/auth.sqlite3`; set `AUTH_DATABASE_URL=postgresql+psycopg://...` to use PostgreSQL. The user table enforces unique normalized email and stores only the Argon2id hash. This endpoint creates an account only; it does not establish a login session. Keep `AUTH_DATABASE_URL` in the server environment, never in source control.
 
 ## Student login
 
@@ -81,6 +83,10 @@ Sign in with `POST /auth/login` (full URL: `/api/v1/auth/login`):
 }
 ```
 
-The response contains public account fields and sets the `dtu_session` cookie with HttpOnly and SameSite=Lax attributes; Secure is enabled for HTTPS requests or when `SESSION_COOKIE_SECURE=true`. The cookie holds an opaque random token, while storage keeps only its SHA-256 hash. Sessions expire after seven days. Unknown emails and incorrect passwords share the same 401 response. Set `SESSION_COOKIE_SECURE=true` behind a TLS-terminating proxy if the application does not see the original HTTPS scheme.
+The response contains public account fields and sets the `dtu_session` cookie with HttpOnly and SameSite=Lax attributes. Secure is enabled for HTTPS requests or when `SESSION_COOKIE_SECURE=true`. The cookie holds an opaque random token, while storage keeps only its SHA-256 hash. Sessions expire after seven days. Unknown emails and incorrect passwords share the same 401 response.
 
-The account adapter must implement `get_credentials_by_email` and `get_user_by_id` in `UserRepository`; the session adapter must implement `create_session` and `get_user_id_for_token_hash` in `SessionRepository`. The session lookup must reject expired or revoked sessions. If an external `principal_provider` is installed, it must resolve the same `dtu_session` cookie and session store. Missing repositories return 503. The login route does not return credentials or a bearer token.
+The auth storage adapter implements `UserRepository` and `SessionRepository`. Sessions store only a hash of the random token, reject expired or revoked records, and last seven days. If an external `principal_provider` is installed, it must resolve the same `dtu_session` cookie and storage. Configure `SESSION_COOKIE_SECURE=true` behind a TLS-terminating proxy when the app does not see the HTTPS scheme. The login route returns no password hash or bearer token.
+
+## Logout
+
+Call `POST /auth/logout` to revoke the current session and clear its cookie. The request is safe to repeat.

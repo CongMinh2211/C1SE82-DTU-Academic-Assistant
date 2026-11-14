@@ -1,4 +1,4 @@
-"""Public registration and login endpoints."""
+"""Public registration, login and logout endpoints."""
 
 from fastapi import APIRouter, Depends, Request, Response
 
@@ -9,6 +9,7 @@ from app.services.users import (
     get_session_repository,
     get_user_repository,
     login_user,
+    logout_user,
     register_student,
 )
 
@@ -38,3 +39,14 @@ def login(
         request=request,
         response=response,
     )
+
+
+@router.post("/logout", status_code=204)
+def logout(
+    request: Request,
+    response: Response,
+    session_repository: SessionRepository = Depends(get_session_repository),
+) -> Response:
+    logout_user(session_repository, request=request, response=response)
+    response.status_code = 204
+    return response

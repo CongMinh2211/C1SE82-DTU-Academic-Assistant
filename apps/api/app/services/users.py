@@ -22,6 +22,7 @@ from app.schemas.users import (
 
 SESSION_COOKIE_NAME = "dtu_session"
 SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7
+SESSION_COOKIE_PATH = "/api/v1"
 
 
 class UserEmailAlreadyExistsError(Exception):
@@ -67,9 +68,20 @@ class SessionRepository(Protocol):
         """Return the owner only for an unexpired, non-revoked session."""
         ...
 
+    def revoke_session(self, *, token_hash: str, revoked_at: datetime) -> None:
+        """Revoke the session matching this token hash, if it exists."""
+        ...
+
 
 _PASSWORD_HASHER = PasswordHasher()
 _DUMMY_PASSWORD_HASH = _PASSWORD_HASHER.hash(secrets.token_urlsafe(32))
+
+
+def _secure_cookie(request: Request) -> bool:
+    configured = os.getenv("SESSION_COOKIE_SECURE")
+    if configured is not None:
+        return configured.casefold() in {"1", "true", "yes"}
+    return request.url.scheme == "https"
 
 
 def get_user_repository(request: Request) -> UserRepository:
@@ -149,21 +161,38 @@ def login_user(
         expires_at=expires_at,
     )
 
-    secure_setting = os.getenv("SESSION_COOKIE_SECURE")
-    secure_cookie = (
-        secure_setting.lower() in {"1", "true", "yes"}
-        if secure_setting is not None
-        else request.url.scheme == "https"
-    )
     response.set_cookie(
         key=SESSION_COOKIE_NAME,
         value=token,
         max_age=SESSION_MAX_AGE_SECONDS,
         expires=SESSION_MAX_AGE_SECONDS,
-        path="/api/v1",
-        secure=secure_cookie,
+        path=SESSION_COOKIE_PATH,
+        secure=_secure_cookie(request),
         httponly=True,
         samesite="lax",
     )
     response.headers["Cache-Control"] = "no-store"
     return credentials.user
+
+
+def logout_user(
+    session_repository: SessionRepository,
+    *,
+    request: Request,
+    response: Response,
+) -> None:
+    token = request.cookies.get(SESSION_COOKIE_NAME)
+    if token:
+        token_hash = hashlib.sha256(token.encode("utf-8")).hexdigest()
+        session_repository.revoke_session(
+            token_hash=token_hash,
+            revoked_at=datetime.now(UTC),
+        )
+    response.delete_cookie(
+        key=SESSION_COOKIE_NAME,
+        path=SESSION_COOKIE_PATH,
+        secure=_secure_cookie(request),
+        httponly=True,
+        samesite="lax",
+    )
+    response.headers["Cache-Control"] = "no-store"
