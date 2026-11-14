@@ -12,7 +12,7 @@ FAQ requests reject unknown fields, trim surrounding whitespace, and enforce que
 
 The application deliberately fails closed until the shared backend adapters are installed:
 
-- app.state.principal_provider must resolve the authenticated principal. The admin routes require role == "admin".
+- app.state.principal_provider can resolve the authenticated principal. Without it, the built-in session resolver uses app.state.session_repository and app.state.user_repository. Admin routes require role == "admin".
 - app.state.faq_repository must implement the FaqRepository protocol in app/services/faqs.py. Its save operation must check source existence and, when publishing, active/approved status in the same database transaction.
 
 If either adapter is missing, the API returns a structured 503 error. This leaves authentication and database schema decisions with their shared owners.
@@ -69,3 +69,18 @@ Create a student account with `POST /auth/register` (full URL: `/api/v1/auth/reg
 Names are trimmed and limited to 2–100 characters. Email addresses are validated and normalized to lowercase. Passwords must contain 12–128 characters and are stored as Argon2id hashes; the plaintext password is never returned or passed to the storage adapter. Registration always assigns the `student` role. Unknown fields, including a caller-supplied role, are rejected. A duplicate normalized email returns 409.
 
 The route requires `app.state.user_repository` to implement `UserRepository.create_user` from `app/services/users.py`. The adapter must atomically enforce unique normalized emails and persist the returned account with the encoded password hash. Until that shared storage adapter is installed, registration returns 503. This endpoint creates an account only; it does not establish a login session. Authentication and session creation are handled by the login flow.
+
+## Student login
+
+Sign in with `POST /auth/login` (full URL: `/api/v1/auth/login`):
+
+```json
+{
+  "email": "student@example.edu",
+  "password": "the-account-password"
+}
+```
+
+The response contains public account fields and sets the `dtu_session` cookie with HttpOnly and SameSite=Lax attributes; Secure is enabled for HTTPS requests or when `SESSION_COOKIE_SECURE=true`. The cookie holds an opaque random token, while storage keeps only its SHA-256 hash. Sessions expire after seven days. Unknown emails and incorrect passwords share the same 401 response. Set `SESSION_COOKIE_SECURE=true` behind a TLS-terminating proxy if the application does not see the original HTTPS scheme.
+
+The account adapter must implement `get_credentials_by_email` and `get_user_by_id` in `UserRepository`; the session adapter must implement `create_session` and `get_user_id_for_token_hash` in `SessionRepository`. The session lookup must reject expired or revoked sessions. If an external `principal_provider` is installed, it must resolve the same `dtu_session` cookie and session store. Missing repositories return 503. The login route does not return credentials or a bearer token.
