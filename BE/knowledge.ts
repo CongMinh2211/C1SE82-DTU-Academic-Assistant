@@ -36,6 +36,8 @@ export async function saveRevision(
     scope: string;
     kind: string;
     url?: string;
+    effectiveFrom?: string;
+    effectiveTo?: string;
     filename: string;
     mime: string;
     bytes: Buffer;
@@ -43,6 +45,30 @@ export async function saveRevision(
   },
   actor: string,
 ) {
+  // C1SE82-40: Kiểm tra ngày hiệu lực.
+  const isValidDate = (value: string) => {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(`${value}T00:00:00Z`);
+    return (
+      !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value
+    );
+  };
+
+  if (
+    (input.effectiveFrom && !isValidDate(input.effectiveFrom)) ||
+    (input.effectiveTo && !isValidDate(input.effectiveTo))
+  ) {
+    throw new HttpError(400, "Ngày hiệu lực không hợp lệ.");
+  }
+
+  if (
+    input.effectiveFrom &&
+    input.effectiveTo &&
+    input.effectiveFrom > input.effectiveTo
+  ) {
+    throw new HttpError(400, "Ngày kết thúc trước ngày bắt đầu.");
+  }
+
   // Kiểm tra kích thước và xác định tài liệu đích trước khi ghi dữ liệu.
   if (!input.bytes.length || input.bytes.length > maxUploadBytes)
     throw new HttpError(400, "Tài liệu trống hoặc lớn hơn 20 MB.");
@@ -115,7 +141,7 @@ export async function saveRevision(
       )?.n || 0) + 1;
     await db()
       .prepare(
-        "INSERT INTO revisions(id,document_id,version,sha256,raw_path,mime,title_snapshot,scope_snapshot,source_url,pages_json,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+        "INSERT INTO revisions(id,document_id,version,sha256,raw_path,mime,title_snapshot,scope_snapshot,source_url,pages_json,created_at,effective_from,effective_to) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
       )
       .run(
         revisionId,
@@ -129,6 +155,8 @@ export async function saveRevision(
         input.url || null,
         input.pages ? JSON.stringify(input.pages) : null,
         timestamp,
+        input.effectiveFrom || null,
+        input.effectiveTo || null,
       );
     await db()
       .prepare("INSERT INTO jobs(id,revision_id,created_at) VALUES (?,?,?)")
@@ -211,7 +239,7 @@ export async function queueReindex(revisionId: string, actor: string) {
         )?.n || 0) + 1;
     await db()
       .prepare(
-        "INSERT INTO revisions(id,document_id,version,sha256,raw_path,mime,title_snapshot,scope_snapshot,source_url,pages_json,created_at) SELECT ?,document_id,?,sha256,raw_path,mime,title_snapshot,scope_snapshot,source_url,pages_json,? FROM revisions WHERE id=?",
+        "INSERT INTO revisions(id,document_id,version,sha256,raw_path,mime,title_snapshot,scope_snapshot,source_url,pages_json,created_at,effective_from,effective_to) SELECT ?,document_id,?,sha256,raw_path,mime,title_snapshot,scope_snapshot,source_url,pages_json,?,effective_from,effective_to FROM revisions WHERE id=?",
       )
       .run(newId, version, now(), revisionId);
     await db()

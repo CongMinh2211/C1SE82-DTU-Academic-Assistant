@@ -1,7 +1,6 @@
 // Mục đích file: Quản lý chỉ mục vector phục vụ tìm các đoạn tài liệu gần với câu hỏi.
 import { LibSQLVector } from "@mastra/libsql";
 import { PgVector } from "@mastra/pg";
-import { pathToFileURL } from "node:url";
 import path from "node:path";
 import { mkdirSync } from "node:fs";
 import { dataDir, embeddingDimension } from "../config";
@@ -30,7 +29,7 @@ export async function vectors() {
         })
       : new LibSQLVector({
           id: "academic-knowledge",
-          url: pathToFileURL(path.join(dataDir, "vectors.sqlite")).href,
+          url: `file:${path.join(dataDir, "vectors.sqlite")}`,
         });
   // Chia sẻ promise tạo chỉ mục; xóa promise lỗi để lần sau có thể thử lại.
   if (!globalVector.dtuVectorReady)

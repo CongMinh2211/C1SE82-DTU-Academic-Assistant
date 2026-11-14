@@ -25,6 +25,20 @@ export type Evidence = {
   score: number;
 };
 const queryVectors = new QueryVectorCache();
+
+function vietnamToday(): string {
+  const parts = new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date());
+
+  const get = (type: string) => parts.find((part) => part.type === type)?.value;
+
+  return `${get("year")}-${get("month")}-${get("day")}`;
+}
+
 type ChunkRow = {
   id: string;
   document_id: string;
@@ -39,7 +53,31 @@ type ChunkRow = {
   source_url: string | null;
   search_text: string;
 };
-const select = `SELECT c.*,r.title_snapshot title,r.scope_snapshot scope,r.source_url,r.version FROM chunks c JOIN documents d ON d.id=c.document_id JOIN revisions r ON r.id=c.revision_id WHERE d.deleted_at IS NULL AND d.active_revision=c.revision_id`;
+
+
+export const select = `
+  SELECT
+    c.*,
+    r.title_snapshot AS title,
+    r.scope_snapshot AS scope,
+    r.source_url,
+    r.version
+  FROM chunks c
+  JOIN documents d ON d.id = c.document_id
+  JOIN revisions r ON r.id = c.revision_id
+  WHERE d.deleted_at IS NULL
+    AND d.active_revision = c.revision_id
+    AND r.status = 'published'
+    AND (
+      r.effective_from IS NULL
+      OR r.effective_from <= ?
+    )
+    AND (
+      r.effective_to IS NULL
+      OR r.effective_to >= ?
+    )
+`;
+
 // Nhận diện câu hỏi về học phí, kể cả cách hỏi giá một tín chỉ.
 export function tuitionQuestion(question: string) {
   const text = normalize(question);
@@ -133,12 +171,17 @@ export function withPageContext(
 export async function exactTuitionEvidence(
   question: string,
 ): Promise<Evidence[]> {
+  const today = vietnamToday();
   const codes = questionMajorCodes(question);
   if (!codes.length) return [];
+
   const exact = await rows<ChunkRow>(
     `${select} AND (${codes.map(() => "c.text LIKE ?").join(" OR ")}) ORDER BY c.id`,
+    today,
+    today,
     ...codes.map((code) => `%| ${code.toUpperCase()} |%`),
   );
+
   return exact.map((c, i) => ({
     id: `S${i + 1}`,
     chunkId: c.id,
@@ -159,13 +202,26 @@ export async function exactTuitionEvidence(
 // Kết hợp các cách tìm kiếm để lấy những đoạn nguồn liên quan đến câu hỏi.
 export async function retrieve(question: string): Promise<Evidence[]> {
   // Chỉ đưa các phiên bản đang hoạt động vào tập tìm kiếm của sinh viên.
+
+  const today = vietnamToday();
+
   const active = (
     await rows<{
       active_revision: string;
     }>(
-      "SELECT active_revision FROM documents WHERE deleted_at IS NULL AND active_revision IS NOT NULL",
+      `SELECT d.active_revision
+     FROM documents d
+     JOIN revisions r ON r.id = d.active_revision
+     WHERE d.deleted_at IS NULL
+       AND d.active_revision IS NOT NULL
+       AND r.status = 'published'
+       AND (r.effective_from IS NULL OR r.effective_from <= ?)
+       AND (r.effective_to IS NULL OR r.effective_to >= ?)`,
+      today,
+      today,
     )
   ).map((r) => r.active_revision);
+
   if (!active.length) return [];
   const query = expand(question),
     cohorts = questionCohorts(question),
@@ -228,20 +284,27 @@ export async function retrieve(question: string): Promise<Evidence[]> {
   const candidates: Evidence[] = [];
   // Ghép điểm hai cách tìm, rồi đọc lại các đoạn thuộc phiên bản đang hoạt động.
   const matchedIds = [...scores.keys()];
+
   const matched = matchedIds.length
     ? await rows<ChunkRow>(
         `${select} AND c.id IN (${matchedIds.map(() => "?").join(",")})`,
+        today,
+        today,
         ...matchedIds,
       )
     : [];
+
   const byId = new Map(matched.map((c) => [c.id, c]));
   // Exact programme rows must not depend on being in a semantic/FTS top-100
   // window. A paraphrased follow-up can otherwise lose a row we actually hold.
   if (tuitionQuestion(question) && majorCodes.length) {
     const exact = await rows<ChunkRow>(
       `${select} AND (${majorCodes.map(() => "c.text LIKE ?").join(" OR ")})`,
+      today,
+      today,
       ...majorCodes.map((code) => `%| ${code.toUpperCase()} |%`),
     );
+
     for (const c of exact) {
       byId.set(c.id, c);
       scores.set(c.id, (scores.get(c.id) || 0) + 0.2);
@@ -307,16 +370,23 @@ export async function retrieve(question: string): Promise<Evidence[]> {
   // than an unrelated globally ranked clause. Only read the same live revision.
   for (const anchor of [...chosen]) {
     if (!anchor.section || /^\d+\s*\|/m.test(anchor.text)) continue;
+
     const tail = await row<ChunkRow>(
       `${select} AND c.revision_id=? AND c.page=? ORDER BY c.rowid DESC LIMIT 1`,
+      today,
+      today,
       anchor.revisionId,
       anchor.pageEnd,
     );
+
     const next = await row<ChunkRow>(
       `${select} AND c.revision_id=? AND c.page=? ORDER BY c.rowid LIMIT 1`,
+      today,
+      today,
       anchor.revisionId,
       anchor.pageEnd + 1,
     );
+
     const continuation =
       tail?.section && next?.section === tail.section ? next : undefined;
     if (
@@ -340,10 +410,13 @@ export async function retrieve(question: string): Promise<Evidence[]> {
     const transition = (
       await rows<ChunkRow>(
         `${select} AND d.title='Quy chế đào tạo trình độ đại học' AND c.page>=23 ORDER BY c.page,c.id`,
+        today,
+        today,
       )
     ).filter((c) =>
       /Điều 27|áp dụng đối với khóa|khóa tuyển sinh|chuyển tiếp/.test(c.text),
     );
+
     for (const c of transition.slice(0, 2))
       if (!chosen.some((x) => x.chunkId === c.id))
         chosen.push({

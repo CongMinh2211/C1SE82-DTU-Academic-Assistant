@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS revisions (
       mime TEXT NOT NULL, title_snapshot TEXT NOT NULL, scope_snapshot TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'queued',
       pages_json TEXT, chunk_count BIGINT DEFAULT 0, error TEXT,
       created_at TEXT NOT NULL, published_at TEXT, source_url TEXT,
+      effective_from DATE,
+      effective_to DATE,
       UNIQUE(document_id, version)
     );
 CREATE TABLE IF NOT EXISTS chunks (
