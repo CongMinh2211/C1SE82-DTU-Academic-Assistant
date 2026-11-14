@@ -1,4 +1,4 @@
-# FAQ API
+# DTU Academic Assistant API
 
 The API is mounted under /api/v1:
 
@@ -15,7 +15,7 @@ The application deliberately fails closed until the shared backend adapters are 
 - app.state.principal_provider can resolve the authenticated principal. Without it, the built-in session resolver uses app.state.session_repository and app.state.user_repository. Admin routes require role == "admin".
 - app.state.faq_repository must implement the FaqRepository protocol in app/services/faqs.py. Its save operation must check source existence and, when publishing, active/approved status in the same database transaction.
 
-If either adapter is missing, the API returns a structured 503 error. This leaves authentication and database schema decisions with their shared owners.
+A missing required adapter returns a structured 503 error. This leaves authentication and database schema decisions with their shared owners.
 
 Errors use {"error":{"code":"...","message":"...","request_id":"...","details":[]}}; X-Request-ID is returned on both successful and failed responses.
 
@@ -23,7 +23,7 @@ Errors use {"error":{"code":"...","message":"...","request_id":"...","details":[
 
 Authenticated users can submit feedback with POST /feedback and view only their own feedback with GET /feedback and GET /feedback/{id}. Administrators can list feedback with GET /admin/feedback and resolve pending items with PATCH /admin/feedback/{id}.
 
-The shared app.state.feedback_repository must implement FeedbackRepository. Its create_for_owner operation must atomically verify that any referenced message is an assistant reply in the submitting user's conversation before inserting. Owner-scoped reads must filter by user_id in storage, and resolve_pending must update only pending feedback atomically. The shared principal_provider is required. Missing adapters return 503.
+The shared app.state.feedback_repository must implement FeedbackRepository. Its create_for_owner operation must atomically verify that any referenced message is an assistant reply in the submitting user's conversation before inserting. Owner-scoped reads must filter by user_id in storage, and resolve_pending must update only pending feedback atomically. Authentication uses app.state.principal_provider or the built-in session resolver. Missing required adapters return 503.
 
 ## Pytest regression suite
 

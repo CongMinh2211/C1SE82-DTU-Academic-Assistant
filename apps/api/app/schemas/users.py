@@ -56,10 +56,3 @@ class UserCredentials(BaseModel):
 
     user: RegisteredUser
     password_hash: str = Field(min_length=1, repr=False)
-
-
-class SessionUser(BaseModel):
-    """Minimal internal session resolution result."""
-
-    user_id: UUID
-    expires_at: datetime

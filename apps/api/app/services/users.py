@@ -12,7 +12,12 @@ from argon2.exceptions import VerificationError
 from fastapi import Request, Response
 
 from app.core.errors import APIError
-from app.schemas.users import RegisteredUser, UserCredentials, UserLogin, UserRegistration
+from app.schemas.users import (
+    RegisteredUser,
+    UserCredentials,
+    UserLogin,
+    UserRegistration,
+)
 
 
 SESSION_COOKIE_NAME = "dtu_session"

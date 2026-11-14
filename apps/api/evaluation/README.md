@@ -2,9 +2,9 @@
 
 This package evaluates exported RAG traces for retrieval ranking, citation identity, source-reference coverage, and fallback behavior. It uses only the Python standard library.
 
-## Important scope
+## Scope
 
-The target branch currently has no chat/RAG API or trace-export adapter. This tool does not call a live assistant. It evaluates JSON traces supplied by a future API adapter or a manually prepared fixture. It cannot determine whether a passage semantically entails a claim; reviewers must inspect the answer and cited passage.
+The branch does not expose a chat/RAG API or trace-export adapter. This tool evaluates JSON traces supplied by a future adapter or a manually prepared fixture; it does not call a live assistant. It also cannot judge semantic entailment, so reviewers must compare claims with their cited passages.
 
 ## Run
 
@@ -14,7 +14,7 @@ From `apps/api`:
 python -m evaluation.rag_quality --cases evaluation/cases.example.json --traces evaluation/traces.json
 ```
 
-The command prints a JSON report. Exit code is 0 if the suite passes, 1 if any case or suite check fails, and 2 if an input file cannot be read or parsed. `cases.example.json` contains placeholders, not approved DTU facts; replace all source IDs and locators before using it as a real benchmark.
+The command prints per-case results and suite averages. Exit code is 0 if the suite passes, 1 if a case or suite check fails, and 2 if an input file cannot be read or parsed. The averages include answerable cases only; mean reciprocal rank is the arithmetic mean of their per-case reciprocal ranks. `cases.example.json` contains placeholders, not approved DTU facts. Replace its source IDs and locators before using it as a real benchmark.
 
 ## Case JSON
 
@@ -22,9 +22,9 @@ The cases file is a JSON array. Each case has:
 
 - `id`: unique case identifier.
 - `expected_sources`: required source references, each with exact `source_id` and `locator` (page, section, or stable chunk locator).
-- `claims`: review checklist describing expected factual claims and the source IDs expected to support them. This is documentation for reviewers; the evaluator checks the trace's claim references, not semantic similarity to this checklist.
-- `fallback_reason`: `null` for answerable cases or the expected reason such as `no_evidence` / `provider_unavailable`.
-- `thresholds`: optional per-case minimums. Defaults for answerable cases are 1.0 retrieval recall, 1.0 reciprocal rank, 1.0 citation precision, and 1.0 citation recall.
+- `claims`: reviewer checklist of expected factual claims and their expected source IDs. This is not a semantic gold answer; the evaluator checks trace source references only.
+- `fallback_reason`: `null` for answerable cases or an expected reason such as `no_evidence` / `provider_unavailable`.
+- `thresholds`: optional per-case minimums. Defaults for answerable cases are 1.0 retrieval recall, reciprocal rank, citation precision, and citation recall.
 
 Example:
 
@@ -55,6 +55,6 @@ The traces file is a JSON array with one record per case ID:
 ]
 ```
 
-Each citation must match an expected source and an exact retrieved source-plus-locator pair. Claim source IDs must map to at least one exact expected, retrieved, and cited reference. For a fallback case, the trace must return the expected fallback reason and have no factual claims or citations. Missing, extra, duplicate, or malformed trace records fail the suite.
+Each citation must match an expected source and an exact retrieved source-plus-locator pair. A claim counts as source-covered only if it has non-empty text and its source IDs map to an exact expected, retrieved, and cited reference. The per-case `claim_source_coverage` score is the proportion of covered claims; any invalid or unsupported claim fails the case. For a fallback case, the trace must return the expected fallback reason and have no claims or citations. Missing, extra, duplicate, or malformed trace records fail the suite.
 
-Use traces captured from a controlled test dataset. Keep source IDs and locator conventions stable across exports, and record the corpus version alongside the benchmark when the integration is implemented.
+Keep source IDs and locator conventions stable across exports, and record the corpus version alongside each benchmark.
