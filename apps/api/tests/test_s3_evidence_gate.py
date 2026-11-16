@@ -64,3 +64,18 @@ def test_expired_future_and_invalid_periods_never_become_evidence() -> None:
         candidate("valid", effective_date=date(2026, 11, 1), expires_on=today),
     ]
     assert [item.chunk_id for item in select_evidence(candidates, minimum_similarity=0.72, today=today)] == ["valid"]
+
+
+@pytest.mark.parametrize("score", [1.01, 2.0, -1.01])
+def test_invalid_similarity_range_is_never_cited(score: float) -> None:
+    # Điểm lỗi ngoài miền cosine không thể trở thành bằng chứng dù vượt ngưỡng.
+    answer = answer_from_evidence([candidate("invalid-score", similarity=score)], minimum_similarity=0.72)
+    assert answer.fallback is True
+    assert answer.citations == []
+
+
+@pytest.mark.parametrize("flag", ["false", "true", 1, None])
+def test_non_boolean_approval_and_active_flags_fail_closed(flag: object) -> None:
+    # Dữ liệu provider sai kiểu không được suy ra là đã duyệt hay đang hoạt động.
+    assert not select_evidence([candidate("bad-approval", approved=flag)], minimum_similarity=0.72)
+    assert not select_evidence([candidate("bad-active", active=flag)], minimum_similarity=0.72)

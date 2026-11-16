@@ -44,13 +44,15 @@ def select_evidence(
     # Không suy đoán ngày hiệu lực khi nguồn dữ liệu chưa cung cấp thông tin.
     eligible = (
         item for item in candidates
-        if item.approved
-        and item.active
+        if item.approved is True
+        and item.active is True
         and item.chunk_id.strip()
         and item.document_version_id.strip()
         and item.title.strip()
         and item.excerpt.strip()
         and isfinite(item.similarity)
+        # Provider phải trả cosine hợp lệ; không dùng điểm vượt 1 để tạo citation.
+        and -1 <= item.similarity <= 1
         and item.similarity >= minimum_similarity
         and (item.effective_date is None or item.effective_date <= today)
         and (item.expires_on is None or item.expires_on >= today)
