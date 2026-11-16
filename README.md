@@ -35,4 +35,6 @@ API tests: `cd apps/api; .venv\Scripts\python -m pytest -q`. The provisional `PO
 
 Từ `apps/api`, cài `pip install -e ".[dev]" ruff==0.11.13`, sau đó chạy `python -m ruff check --select E9,F63,F7,F82 app tests` và `python -m pytest -q`; API smoke test chạy `python -m pytest -q tests/test_health.py`. Từ `apps/web`, chạy `npm ci`, `npx --yes @biomejs/biome@1.9.4 lint src --diagnostic-level=error --skip=lint/a11y/noLabelWithoutControl`, `npm run typecheck` và `npm run build`.
 
+API contract integration: `python -m pytest -q tests/test_chat_support.py tests/test_s3_evidence_gate.py --junitxml=api-contract.xml` (chạy trong `apps/api`). Provider được giả lập, không thay thế kiểm thử PostgreSQL hoặc source handover. Workflow lưu cả hai báo cáo JUnit cho người review.
+
 Ngoại lệ lint `noLabelWithoutControl` chỉ để ghi nhận hai lỗi có sẵn ở giao diện đăng nhập scaffold; chủ sở hữu FE cần sửa, sau đó bỏ ngoại lệ. Backend Ruff hiện chỉ bật nhóm lỗi cú pháp và lỗi tên chọn lọc, chưa phải toàn bộ quy tắc style. Workflow quét secrets và từ chối file `.env` được theo dõi; không công bố secrets hoặc nội dung phát hiện trong log. CI và checklist không thay thế branch protection hoặc review; hai cấu hình này phải được xác nhận trên GitHub.

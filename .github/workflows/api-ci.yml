@@ -1,7 +1,7 @@
 name: API checks
 on:
   push:
-    branches: ["member/**"]
+    branches: ["member/**", "codex/**"]
   pull_request:
   workflow_dispatch:
 permissions:
@@ -25,11 +25,16 @@ jobs:
       - run: python -m pytest -q --junitxml=pytest.xml
       - name: API smoke test
         run: python -m pytest -q tests/test_health.py
+      # Provider giả kiểm tra hợp đồng API; chưa thay thế PostgreSQL thật.
+      - name: API and RAG contract integration
+        run: python -m pytest -q tests/test_chat_support.py tests/test_s3_evidence_gate.py --junitxml=api-contract.xml
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: backend-pytest
-          path: apps/api/pytest.xml
+          path: |
+            apps/api/pytest.xml
+            apps/api/api-contract.xml
           if-no-files-found: ignore
   web:
     runs-on: ubuntu-latest
