@@ -16,6 +16,19 @@ Các URL sau được nêu trong tài liệu bàn giao, **không phải bằng c
 
 Theo `README.md` trong bộ FE/BE handover (báo cáo 28–31/10/2026), một số tài liệu đã nhập và thử trên **Docker local**; các môi trường khác không tự đồng bộ. Tài liệu 2019 và hướng dẫn cũ chưa được xác minh hiệu lực. Không sử dụng dữ liệu tài khoản/hội thoại sinh viên hoặc trang có thông tin riêng tư để tạo corpus công khai.
 
+## Kiểm tra khả dụng công khai - 16/11/2026
+
+Minh kiểm tra HTTP trực tiếp từ máy phát triển, không đăng nhập và không thu thập dữ liệu sinh viên. Việc truy cập thành công chỉ chứng minh URL phản hồi tại thời điểm kiểm tra; **không chứng minh quyền tái sử dụng, tính đầy đủ, thời hạn hiệu lực hoặc phê duyệt**.
+
+| Địa chỉ | Phản hồi | Giới hạn |
+| --- | --- | --- |
+| Trang Khoa Đào tạo Quốc tế | HTTP 200, HTML | Trang cho biết danh sách có thể không đầy đủ; cần đối chiếu từng hồ sơ. |
+| Trang danh sách thi Ban Đào tạo | HTTP 200, HTML | Chỉ kiểm tra trang công khai; không xác nhận lịch thi của cá nhân. |
+| Cổng myDTU | HTTP 200 sau chuyển sang trang đăng nhập | Chỉ lưu URL cổng; không thu thập nội dung sau đăng nhập. |
+| PDF danh sách Capstone | HTTP 206, loại PDF khi yêu cầu dải byte đầu | Chưa xác nhận quyền sử dụng hoặc rà soát toàn bộ tài liệu; chưa nhập file. |
+
+Chủ nguồn/đơn vị công bố theo tên miền là DTU; owner dữ liệu trong nhóm, người phê duyệt, quyền sử dụng và ngày hiệu lực **chưa xác minh**. Không xem bảng trên là phê duyệt nguồn.
+
 ## Trường dữ liệu bắt buộc cho từng bản nguồn (đề xuất checklist)
 
 - `source_url`, `source_owner`, `title`, quyền sử dụng/phạm vi công khai, thời điểm **kiểm tra lại thực tế**.
