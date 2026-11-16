@@ -54,3 +54,19 @@ Checksum SHA-256 và các đoạn trạng thái được ghi tại `evidence/C1S
 2. Duyên xác nhận testcase, coverage transparency/privacy và các limitation trong S3.
 3. Owner cung cấp link/bản review cuối cho Architecture, AI Disclosure và Code Standards; xử lý khác biệt giữa trạng thái Jira và trạng thái ghi trong tài liệu.
 4. Reviewer duyệt PR; không tự merge hoặc giả lập approval.
+
+
+## Bổ sung đối chiếu bản handover local - 16/11/2026
+
+Bảng gốc bên trên mô tả bản FastAPI/FE được kiểm tra ngày 28/10, **không đại diện toàn bộ bản `dtu-academic-assistant-handover` hiện dùng**. Các nhận định sau dựa trên mã local và không phải xác nhận production; bản handover chưa được đưa vào PR scaffold này.
+
+| Thành phần | Thấy trong source handover | Giới hạn cần xác nhận |
+| --- | --- | --- |
+| FE/BE | Next.js 16, React 19; FE và dịch vụ Node/TypeScript ở `FE/`, `BE/`; cùng cấu hình dependency gốc | Khác scaffold `apps/web` Next.js 15 và `apps/api` FastAPI; hai bản không đồng bộ tự động. |
+| CSDL và vector | `BE/config.ts` cấu hình embedding `Xenova/multilingual-e5-small`, 384 chiều; `BE/rag/vectors.ts` dùng LibSQL local hoặc PgVector khi có cấu hình DB | Không khẳng định 768 chiều/Gemini embedding cho bản này; đổi model hoặc chiều cần tái lập chỉ mục. Xác minh migration và TLS trên môi trường đích. |
+| Provider | `BE/rag/model.ts` cấu hình Gemini/OpenAI hoặc provider tương thích được cấu hình ở server | Cấu hình trong code không chứng minh khóa hợp lệ, quota, fallback thực tế hay bảo đảm thời gian phản hồi. |
+| Nguồn và trích dẫn | Retrieval xét revision đang công bố, hiệu lực/phạm vi; voice document-only loại nguồn web và yêu cầu citation | Metadata thiếu không được coi là đã xác minh; cần rà nguồn thực, mở đúng file/trang, kiểm thử mọi đường trả lời. |
+| Dữ liệu giọng nói | Backend nhận audio để gửi Gemini khi tính năng tương ứng được cấu hình và người dùng đồng ý; có giới hạn kích thước/thời gian | Không tự tuyên bố xử lý offline; chính sách lưu trữ của bên cung cấp và quyền micro cần được thông báo. |
+| An ninh và triển khai | Secret đọc từ môi trường; Docker local có app, API và worker | Không đưa file môi trường/dữ liệu bàn giao vào Git. Chưa xác minh bản production, khả năng chịu tải hoặc khôi phục thảm họa. |
+
+Các bài test với provider giả chỉ xác nhận hợp đồng và nhánh xử lý, không chứng minh độ chính xác AI hoặc chất lượng truy xuất thực. Reviewer Tài cần đối chiếu kiến trúc/DB; Duyên đối chiếu SRS và kết quả QA; mentor review chưa được xác nhận.
