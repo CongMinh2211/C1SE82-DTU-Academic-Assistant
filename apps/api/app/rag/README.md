@@ -1,0 +1,1 @@
+RAG modules will cover approved-source extraction, Vietnamese-aware chunking, embedding adapter, pgvector retrieval/ranking, similarity cutoff, prompt building, citation assembly and safe fallback. Nothing in this folder should answer from unapproved sources. Provider choice and corpus are pending.
