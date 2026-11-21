@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { Pool, types, type PoolClient } from "pg";
 import { attachDatabasePool } from "@vercel/functions";
 import { db as localDb } from "./sqlite";
+import { configuredPostgresConnectionUrl } from "./postgres-connection";
 
 export const cloudDatabase = () => !!process.env.DATABASE_URL;
 const context = new AsyncLocalStorage<{ client?: PoolClient; sqlite?: true }>();
@@ -16,10 +17,8 @@ types.setTypeParser(20, (value) => {
 export function pool() {
   if (!runtime.academicPool) {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
-    const url = new URL(process.env.DATABASE_URL);
-    url.searchParams.set("sslmode", "verify-full");
     runtime.academicPool = new Pool({
-      connectionString: url.href,
+      connectionString: configuredPostgresConnectionUrl(process.env.DATABASE_URL),
       max: 4,
       connectionTimeoutMillis: 15000,
       idleTimeoutMillis: 10000,
