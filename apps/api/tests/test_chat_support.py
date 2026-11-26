@@ -1,5 +1,6 @@
 from datetime import date, timedelta
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.api.v1.endpoints.chat import get_candidate_provider
@@ -83,6 +84,45 @@ def test_chat_rejects_blank_question(monkeypatch) -> None:
     monkeypatch.setenv("ENABLE_CHAT_PREVIEW", "true")
     response = TestClient(app).post("/api/v1/chat/ask", json={"question": "     "})
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("threshold", ["nan", "inf", "-0.1", "1.1", "invalid"])
+def test_invalid_threshold_is_rejected_before_provider_is_called(monkeypatch, threshold) -> None:
+    class Provider:
+        def search(self, question: str, *, limit: int) -> list[EvidenceCandidate]:
+            pytest.fail("provider must not be called with invalid configuration")
+
+    monkeypatch.setenv("ENABLE_CHAT_PREVIEW", "true")
+    monkeypatch.setenv("RAG_MIN_SIMILARITY", threshold)
+    monkeypatch.setitem(app.dependency_overrides, get_candidate_provider, Provider)
+    response = TestClient(app).post("/api/v1/chat/ask", json={"question": "Học phí ở đâu?"})
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Cấu hình truy xuất chưa hợp lệ."
+
+
+def test_provider_failure_returns_service_error_without_leaking_details(monkeypatch) -> None:
+    class Provider:
+        def search(self, question: str, *, limit: int) -> list[EvidenceCandidate]:
+            raise ConnectionError("private connection detail")
+
+    monkeypatch.setenv("ENABLE_CHAT_PREVIEW", "true")
+    monkeypatch.setitem(app.dependency_overrides, get_candidate_provider, Provider)
+    response = TestClient(app).post("/api/v1/chat/ask", json={"question": "Học phí ở đâu?"})
+    assert response.status_code == 503
+    assert response.json()["detail"] == "Dịch vụ truy xuất tạm thời không khả dụng."
+    assert "private connection detail" not in response.text
+
+
+def test_malformed_provider_entry_does_not_discard_valid_evidence(monkeypatch) -> None:
+    class Provider:
+        def search(self, question: str, *, limit: int) -> list[EvidenceCandidate]:
+            return [None, candidate()]
+
+    monkeypatch.setenv("ENABLE_CHAT_PREVIEW", "true")
+    monkeypatch.setitem(app.dependency_overrides, get_candidate_provider, Provider)
+    response = TestClient(app).post("/api/v1/chat/ask", json={"question": "Học phí ở đâu?"})
+    assert response.status_code == 200
+    assert response.json()["citations"][0]["chunk_id"] == "chunk-1"
 
 def test_preview_normalizes_short_tuition_queries_before_retrieval(monkeypatch) -> None:
     queries = []

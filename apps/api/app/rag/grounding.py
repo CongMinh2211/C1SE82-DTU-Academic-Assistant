@@ -44,7 +44,8 @@ def select_evidence(
     # Không suy đoán ngày hiệu lực khi nguồn dữ liệu chưa cung cấp thông tin.
     eligible = (
         item for item in candidates
-        if item.approved is True
+        if isinstance(item, EvidenceCandidate)
+        and item.approved is True
         and item.active is True
         # Provider là ranh giới dữ liệu ngoài: sai kiểu phải bị loại, không
         # làm hỏng toàn bộ yêu cầu hoặc biến nội dung thiếu thành trích dẫn.

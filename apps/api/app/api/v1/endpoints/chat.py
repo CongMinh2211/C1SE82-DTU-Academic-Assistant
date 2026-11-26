@@ -37,11 +37,15 @@ def ask_question(
     if os.getenv("ENABLE_CHAT_PREVIEW", "false").lower() != "true":
         raise HTTPException(status_code=503, detail="Chat API chưa được bật cho môi trường này.")
     try:
-        # Ngưỡng này là giá trị demo có cấu hình, cần đánh giá lại trên bộ câu
-        # hỏi tiếng Việt và embedding model thực tế trước khi dùng chính thức.
+        # Kiểm tra trước khi gọi provider, tránh truy vấn khi cấu hình không hợp lệ.
         threshold = float(os.getenv("RAG_MIN_SIMILARITY", "0.72"))
-        return answer_from_evidence(
-            provider.search(normalize_question(request.question), limit=5), minimum_similarity=threshold
-        )
+        if not 0 <= threshold <= 1:
+            raise ValueError("invalid similarity threshold")
     except (TypeError, ValueError) as exc:
         raise HTTPException(status_code=503, detail="Cấu hình truy xuất chưa hợp lệ.") from exc
+    try:
+        candidates = provider.search(normalize_question(request.question), limit=5)
+        return answer_from_evidence(candidates, minimum_similarity=threshold)
+    except Exception as exc:
+        # Không trả chi tiết lỗi DB/provider hoặc nhầm lỗi dịch vụ với không có nguồn.
+        raise HTTPException(status_code=503, detail="Dịch vụ truy xuất tạm thời không khả dụng.") from exc
