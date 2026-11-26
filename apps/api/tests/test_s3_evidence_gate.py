@@ -79,3 +79,18 @@ def test_non_boolean_approval_and_active_flags_fail_closed(flag: object) -> None
     # Dữ liệu provider sai kiểu không được suy ra là đã duyệt hay đang hoạt động.
     assert not select_evidence([candidate("bad-approval", approved=flag)], minimum_similarity=0.72)
     assert not select_evidence([candidate("bad-active", active=flag)], minimum_similarity=0.72)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("chunk_id", None), ("document_version_id", 12), ("title", None),
+    ("excerpt", []), ("similarity", "0.9"), ("similarity", True),
+    ("effective_date", "2026-01-01"), ("expires_on", 123),
+    ("page", 0), ("page", True), ("section", 42),
+])
+def test_malformed_provider_metadata_is_excluded_without_losing_valid_sources(
+    field: str, value: object
+) -> None:
+    # Metadata sai kiểu không được tạo citation hoặc khiến nguồn hợp lệ bị mất.
+    broken = candidate("broken", **{field: value}) if field != "chunk_id" else candidate(value)
+    selected = select_evidence([broken, candidate("valid")], minimum_similarity=0.72)
+    assert [item.chunk_id for item in selected] == ["valid"]

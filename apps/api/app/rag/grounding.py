@@ -46,14 +46,21 @@ def select_evidence(
         item for item in candidates
         if item.approved is True
         and item.active is True
-        and item.chunk_id.strip()
-        and item.document_version_id.strip()
-        and item.title.strip()
-        and item.excerpt.strip()
+        # Provider là ranh giới dữ liệu ngoài: sai kiểu phải bị loại, không
+        # làm hỏng toàn bộ yêu cầu hoặc biến nội dung thiếu thành trích dẫn.
+        and all(isinstance(value, str) and value.strip() for value in (
+            item.chunk_id, item.document_version_id, item.title, item.excerpt
+        ))
+        and isinstance(item.similarity, (int, float))
+        and not isinstance(item.similarity, bool)
         and isfinite(item.similarity)
         # Provider phải trả cosine hợp lệ; không dùng điểm vượt 1 để tạo citation.
         and -1 <= item.similarity <= 1
         and item.similarity >= minimum_similarity
+        and (item.effective_date is None or type(item.effective_date) is date)
+        and (item.expires_on is None or type(item.expires_on) is date)
+        and (item.page is None or (type(item.page) is int and item.page > 0))
+        and (item.section is None or isinstance(item.section, str))
         and (item.effective_date is None or item.effective_date <= today)
         and (item.expires_on is None or item.expires_on >= today)
         and (item.effective_date is None or item.expires_on is None or item.effective_date <= item.expires_on)
