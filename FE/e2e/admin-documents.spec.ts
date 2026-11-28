@@ -39,6 +39,7 @@ test("khách chưa đăng nhập được chuyển khỏi các trang Admin", asy
     "/quan-tri/tai-lieu",
     "/quan-tri/tai-lieu/them",
     "/quan-tri/xu-ly-tai-lieu",
+    "/quan-tri/nhat-ky",
   ]) {
     await page.goto(path);
     await expect(page).toHaveURL(/\/dang-nhap(?:\?|$)/);
@@ -46,6 +47,9 @@ test("khách chưa đăng nhập được chuyển khỏi các trang Admin", asy
   expect((await page.request.get("/api/app/admin/documents")).status()).toBe(
     401,
   );
+  expect(
+    (await page.request.get("/api/app/admin/audit?view=questions")).status(),
+  ).toBe(401);
 });
 
 test("sinh viên không truy cập trang và API Admin", async ({ page }) => {
@@ -57,9 +61,14 @@ test("sinh viên không truy cập trang và API Admin", async ({ page }) => {
   await expect(page).toHaveURL(/\/sinh-vien(?:\/|$)/);
   await page.goto("/quan-tri/tai-lieu");
   await expect(page).toHaveURL(/\/sinh-vien(?:\/|$)/);
+  await page.goto("/quan-tri/nhat-ky");
+  await expect(page).toHaveURL(/\/sinh-vien(?:\/|$)/);
   expect((await page.request.get("/api/app/admin/documents")).status()).toBe(
     403,
   );
+  expect(
+    (await page.request.get("/api/app/admin/audit?view=questions")).status(),
+  ).toBe(403);
   expect(
     (
       await page.request.post("/api/app/admin/documents/unknown/publish", {
@@ -69,7 +78,9 @@ test("sinh viên không truy cập trang và API Admin", async ({ page }) => {
   ).toBe(403);
 });
 
-test("Admin mở được Dashboard và các màn tài liệu", async ({ page }) => {
+test("Admin mở được Dashboard, tài liệu và lịch sử hỏi đáp", async ({
+  page,
+}) => {
   test.skip(!admin.email || !admin.password, "Cần tài khoản Admin E2E.");
   await signIn(page, admin.email, admin.password);
   await expect(page).toHaveURL(/\/quan-tri(?:\/|$)/);
@@ -84,6 +95,20 @@ test("Admin mở được Dashboard và các màn tài liệu", async ({ page })
   await expect(
     page.getByRole("heading", { name: "Theo dõi xử lý tài liệu" }),
   ).toBeVisible();
+  await page.goto("/quan-tri/nhat-ky");
+  await expect(
+    page.getByRole("heading", { name: "Lịch sử & nhật ký hoạt động" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Lịch sử hỏi đáp" }),
+  ).toBeVisible();
+  const audit = await page.request.get("/api/app/admin/audit?view=questions");
+  expect(audit.ok()).toBeTruthy();
+  expect(typeof (await audit.json()).total).toBe("number");
+  await page.getByRole("button", { name: "Nhật ký hoạt động" }).click();
+  await expect(
+    page.getByRole("button", { name: "Nhật ký hoạt động" }),
+  ).toHaveAttribute("aria-pressed", "true");
 });
 
 test("Admin tải TXT, rà soát và xuất bản sau xác nhận", async ({ page }) => {
